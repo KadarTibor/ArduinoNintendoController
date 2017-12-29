@@ -14,17 +14,17 @@ int button6Pin = 7;
 int buttonState = 0;
 
 void setup() {
-  // put your setup code here, to run once:
-  //bluetoothSerial.begin(9600);
+  bluetoothSerial.begin(9600);
   //bluetoothSerial.println("Bluetooth On please press 1 or 0 blink LED ..");
   pinMode(ledPin,OUTPUT);
-
   pinMode(button1Pin, INPUT);
   pinMode(button2Pin, INPUT);
   pinMode(button3Pin, INPUT);
   pinMode(button4Pin, INPUT);
   pinMode(button5Pin, INPUT);
   pinMode(button6Pin, INPUT);
+
+  
 }
 
 void loop() {
@@ -41,18 +41,35 @@ void loop() {
     }
   }
   */
-  checkButtonPressed();
-  delay(100);// prepare for next data ...
+  check_connection();
+  handle_button_press();
 }
 
-void checkButtonPressed(){
-  buttonState = digitalRead(button1Pin) | digitalRead(button2Pin) | digitalRead(button3Pin) | digitalRead(button4Pin)
-                | digitalRead(button5Pin) | digitalRead(button6Pin);
-
-  if(buttonState == HIGH){
-    digitalWrite(ledPin,HIGH);
-  } else {
-    digitalWrite(ledPin,LOW);
-  }                
+void check_connection(){
+  BluetoothData=bluetoothSerial.read();
+  if(BluetoothData=='1'){   // if number 1 pressed ....
+      digitalWrite(ledPin,HIGH);
+      bluetoothSerial.println("Connected");
+  }
+}
+void handle_button_press(){
+  if(digitalRead(button1Pin) == HIGH){
+    bluetoothSerial.println("left");
+  }
+  if(digitalRead(button2Pin) == HIGH){
+    bluetoothSerial.println("up");
+  }
+  if(digitalRead(button3Pin) == HIGH){
+    bluetoothSerial.println("down");
+  }
+  if(digitalRead(button4Pin) == HIGH){
+    bluetoothSerial.println("right");
+  }
+  if(digitalRead(button5Pin) == HIGH){
+    bluetoothSerial.println("select");
+  }
+  if(digitalRead(button6Pin) == HIGH){
+    bluetoothSerial.println("back");
+  }
 }
 
