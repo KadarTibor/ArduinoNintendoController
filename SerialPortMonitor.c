@@ -14,7 +14,7 @@
 
 HANDLE hcomm;
 
-char SerialBuffer[25]; 
+char serial_buffer[25]; 
 
 void open_port() {
 	TCHAR *pcCommPort = TEXT("COM4");
@@ -47,53 +47,63 @@ void open_port() {
 }
 
 void configure_port() {
-	DCB dcbSerialParams = { 0 };
-	dcbSerialParams.DCBlength = sizeof(dcbSerialParams);
+	DCB dcb_serial_params = { 0 };
+	dcb_serial_params.DCBlength = sizeof(dcb_serial_params);
 
-	GetCommState(hcomm, &dcbSerialParams);
+	if (GetCommState(hcomm, &dcb_serial_params) == 0) {
+		printf("ERROR: Could not retrieve Comm state");
+	}
 	
-	//  Print some of the DCB structure values
+	//  Print the DCB 
 	printf("\nBaudRate = %d, ByteSize = %d, Parity = %d, StopBits = %d\n",
-		dcbSerialParams.BaudRate,
-		dcbSerialParams.ByteSize,
-		dcbSerialParams.Parity,
-		dcbSerialParams.StopBits);
+		dcb_serial_params.BaudRate,
+		dcb_serial_params.ByteSize,
+		dcb_serial_params.Parity,
+		dcb_serial_params.StopBits);
 	
 
-	dcbSerialParams.BaudRate = CBR_9600;   // Setting BaudRate = 9600
-	dcbSerialParams.ByteSize = 8;          // Setting ByteSize = 8
-	dcbSerialParams.StopBits = ONESTOPBIT;		   // Setting StopBits = 0
-	dcbSerialParams.Parity   = NOPARITY;   // Setting Parity = None
+	dcb_serial_params.BaudRate = CBR_9600;   // Setting BaudRate = 9600
+	dcb_serial_params.ByteSize = 8;          // Setting ByteSize = 8
+	dcb_serial_params.StopBits = ONESTOPBIT;		   // Setting StopBits = 0
+	dcb_serial_params.Parity   = NOPARITY;   // Setting Parity = None
 	
-	SetCommState(hcomm, &dcbSerialParams);
+	if (SetCommState(hcomm, &dcb_serial_params) == 0) {
+		printf("ERROR: Could not set the ports state");
+	}
 
+	printf("\nBaudRate = %d, ByteSize = %d, Parity = %d, StopBits = %d\n",
+		dcb_serial_params.BaudRate,
+		dcb_serial_params.ByteSize,
+		dcb_serial_params.Parity,
+		dcb_serial_params.StopBits);
+}
+
+void set_timeouts() {
 	COMMTIMEOUTS timeouts = { 0 };
-	timeouts.ReadIntervalTimeout = 50; // in milliseconds
-	timeouts.ReadTotalTimeoutConstant = 50; // in milliseconds
-	timeouts.ReadTotalTimeoutMultiplier = 10; // in milliseconds
-	timeouts.WriteTotalTimeoutConstant = 50; // in milliseconds
-	timeouts.WriteTotalTimeoutMultiplier = 10; // in milliseconds
-	
-	SetCommTimeouts(hcomm,&timeouts);
+	timeouts.ReadIntervalTimeout = 50; 
+	timeouts.ReadTotalTimeoutConstant = 50; 
+	timeouts.ReadTotalTimeoutMultiplier = 10; 
+	timeouts.WriteTotalTimeoutConstant = 50; 
+	timeouts.WriteTotalTimeoutMultiplier = 10; 
+
+	if (SetCommTimeouts(hcomm, &timeouts) == 0) {
+		printf("ERROR: Could not set the timeouts");
+	}
 }
 
 void write_to_port() {
-	char lpBuffer[] = "1";
-	DWORD dNoOFBytestoWrite = sizeof(lpBuffer);     // No of bytes to write into the port
-	DWORD dNoOfBytesWritten = 0;     // No of bytes written to the port
+	char buffer[] = "1";
+	DWORD dNoOFBytestoWrite = sizeof(buffer);   
+	DWORD dNoOfBytesWritten = 0;					
 	
-	int fsuccess = WriteFile(hcomm,				 // Handle to the Serial port
-			  lpBuffer,				 // Data to be written to the port
-			  1,	 //No of bytes to write
-			  &dNoOfBytesWritten,	 //Bytes written
+	int fsuccess = WriteFile(hcomm,				
+			  buffer,				 
+			  1,	
+			  &dNoOfBytesWritten,	
 			  NULL);
 	if (fsuccess == 0) {
-		printf("bad reading");
+		printf("ERROR: Could not write to the port");
 	}
-	else {
-		printf("good reading");
-	}
-
 }
 
 void generate_keystroke(char c) {
@@ -131,7 +141,7 @@ void generate_keystroke(char c) {
 	}
 	ip.ki.dwFlags = 0; // 0 for key press
 	SendInput(1, &ip, sizeof(INPUT));
-	Sleep(100);
+	Sleep(50); //delay needed in order to trigger the keystroke even, otherwise it is released too soon
 	ip.ki.dwFlags = KEYEVENTF_KEYUP; // KEYEVENTF_KEYUP for key release
 	SendInput(1, &ip, sizeof(INPUT));
 }
@@ -139,19 +149,19 @@ void generate_keystroke(char c) {
 
 void read_from_port() {
 
-	char TempChar; 
+	char temp_char; 
 	DWORD NoBytesRead;
 	int i = 0;
 	int status = 0;
 	do
 	{
 		status = ReadFile(hcomm,            //Handle of the Serial port
-						  &TempChar,        //Temporary character
-						  sizeof(TempChar), //Size of TempChar
+						  &temp_char,        //Temporary character
+						  sizeof(temp_char), //Size of temp_char
 						  &NoBytesRead,     //Number of bytes read
 						  NULL);
 		if (status != 0 && NoBytesRead > 0 ) {
-			SerialBuffer[i] = TempChar;// Store Tempchar into buffer
+			serial_buffer[i] = temp_char;// Store temp_char into buffer
 			i++;
 		}
 	}
@@ -162,8 +172,7 @@ void read_from_port() {
 	if (i > 0) {
 		char *received_info = (char *)malloc((i - 1) * sizeof(char));
 		received_info[i - 2] = '\0';
-		strncpy(received_info, SerialBuffer, i - 2);
-		//strncmp(LEFT, SerialBuffer, i - 2);
+		strncpy(received_info, serial_buffer, i - 2);
 		if (strcmp(received_info, LEFT) == 0) {
 			generate_keystroke('A');
 		}
@@ -182,9 +191,11 @@ void read_from_port() {
 		if (strcmp(received_info, BACK) == 0) {
 			generate_keystroke('K');
 		}
+		
+		printf("Read data: %s", serial_buffer);
+		memset(serial_buffer, 0, sizeof(serial_buffer));
 	}
-	printf("Read data: %s",SerialBuffer);
-	memset(SerialBuffer, 0, sizeof(SerialBuffer));
+	
 }
 
 void wait_comm_event() {
@@ -203,13 +214,13 @@ int main(int argc, char **argv)
 	
 		open_port();
 		configure_port();
+		set_timeouts();
 		write_to_port(); //send character 1 back to confirm connection
 		while (1) {
 			wait_comm_event();
 			read_from_port();
 		}
 	}
-    
 	return 0;
 }
 
