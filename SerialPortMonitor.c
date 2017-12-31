@@ -98,14 +98,44 @@ void write_to_port() {
 
 void generate_keystroke(char c) {
 	INPUT ip;
+	// Set up a generic keyboard event.
 	ip.type = INPUT_KEYBOARD;
+	ip.ki.wScan = 0; // hardware scan code for key
 	ip.ki.time = 0;
-	ip.ki.dwFlags = KEYEVENTF_UNICODE;  // Specify the key as a unicode character
-	ip.ki.wScan = c;					// Which keypress to simulate
-	ip.ki.wVk = 0;
 	ip.ki.dwExtraInfo = 0;
+	switch (c) {
+		case 'A': {
+			ip.ki.wVk = 0x41; //code for A
+			break;
+		}
+		case 'W': {
+			ip.ki.wVk = 0x57; //code for W
+			break;
+		}
+		case 'S': {
+			ip.ki.wVk = 0x53; //code for S
+			break;
+		}
+		case 'D': {
+			ip.ki.wVk = 0x44; //code for D
+			break;
+		}
+		case 'J': {
+			ip.ki.wVk = 0x4A; //code for J
+			break;
+		}
+		case 'K': {
+			ip.ki.wVk = 0x4B; //code for K
+			break;
+		}
+	}
+	ip.ki.dwFlags = 0; // 0 for key press
+	SendInput(1, &ip, sizeof(INPUT));
+	Sleep(100);
+	ip.ki.dwFlags = KEYEVENTF_KEYUP; // KEYEVENTF_KEYUP for key release
 	SendInput(1, &ip, sizeof(INPUT));
 }
+
 
 void read_from_port() {
 
@@ -135,22 +165,22 @@ void read_from_port() {
 		strncpy(received_info, SerialBuffer, i - 2);
 		//strncmp(LEFT, SerialBuffer, i - 2);
 		if (strcmp(received_info, LEFT) == 0) {
-			generate_keystroke('a');
+			generate_keystroke('A');
 		}
 		if (strcmp(received_info, UP) == 0) {
-			generate_keystroke('w');
+			generate_keystroke('W');
 		}
 		if (strcmp(received_info, DOWN) == 0) {
-			generate_keystroke('s');
+			generate_keystroke('S');
 		}
 		if (strcmp(received_info, RIGHT) == 0) {
-			generate_keystroke('d');
+			generate_keystroke('D');
 		}
 		if (strcmp(received_info, SELECT) == 0) {
-			generate_keystroke('j');
+			generate_keystroke('J');
 		}
 		if (strcmp(received_info, BACK) == 0) {
-			generate_keystroke('k');
+			generate_keystroke('K');
 		}
 	}
 	printf("Read data: %s",SerialBuffer);
