@@ -5,10 +5,14 @@
 #include <windows.h>
 #include <stdio.h>
 
+#define LEFT "left"
+#define RIGHT "right"
+#define UP "up"
+#define DOWN "down"
+#define SELECT "select"
+#define BACK "back"
 
 HANDLE hcomm;
-
-
 
 char SerialBuffer[25]; 
 
@@ -74,7 +78,7 @@ void configure_port() {
 }
 
 void write_to_port() {
-	char lpBuffer[] = "1\n\r";
+	char lpBuffer[] = "1";
 	DWORD dNoOFBytestoWrite = sizeof(lpBuffer);     // No of bytes to write into the port
 	DWORD dNoOfBytesWritten = 0;     // No of bytes written to the port
 	
@@ -97,24 +101,47 @@ void read_from_port() {
 	char TempChar; 
 	DWORD NoBytesRead;
 	int i = 0;
-	
+	int status = 0;
 	do
 	{
-		ReadFile(hcomm,            //Handle of the Serial port
-				 &TempChar,        //Temporary character
-				 sizeof(TempChar), //Size of TempChar
-				 &NoBytesRead,     //Number of bytes read
-				 NULL);
-
-		SerialBuffer[i] = TempChar;// Store Tempchar into buffer
-		i++;
+		status = ReadFile(hcomm,            //Handle of the Serial port
+						  &TempChar,        //Temporary character
+						  sizeof(TempChar), //Size of TempChar
+						  &NoBytesRead,     //Number of bytes read
+						  NULL);
+		if (status != 0 && NoBytesRead > 0 ) {
+			SerialBuffer[i] = TempChar;// Store Tempchar into buffer
+			i++;
+		}
 	}
 	while (NoBytesRead > 0);
+
+	char *received_info = (char*)malloc((i - 3) * sizeof(char));
+	strncat(received_info, SerialBuffer, i - 3);
 	
-	printf("Read data: %s \n",SerialBuffer);
+	if (NoBytesRead > 0) {
+		if(strcmp(SerialBuffer, ))
+	}
+	printf("Read data: %s",SerialBuffer);
 	memset(SerialBuffer, 0, sizeof(SerialBuffer));
 }
 
+void wait_comm_event() {
+	SetCommMask(hcomm, EV_RXCHAR);
+	DWORD dwEventMask;
+	WaitCommEvent(hcomm, &dwEventMask, NULL);
+}
+
+void generate_keystroke(char c) {
+	INPUT ip;
+	ip.type = INPUT_KEYBOARD;
+	ip.ki.time = 0;
+	ip.ki.dwFlags = KEYEVENTF_UNICODE;  // Specify the key as a unicode character
+	ip.ki.wScan = c;					// Which keypress to simulate
+	ip.ki.wVk = 0;
+	ip.ki.dwExtraInfo = 0;
+	SendInput(1, &ip, sizeof(INPUT));
+}
 int main(int argc, char **argv)
 {
 	if (argc != 2) {
@@ -122,13 +149,13 @@ int main(int argc, char **argv)
 	}
 	else {
 	
-		open_port(argv[1]);
+		open_port();
 		configure_port();
 		write_to_port(); //send character 1 back to confirm connection
 		while (1) {
+			wait_comm_event();
 			read_from_port();
 		}
-
 	}
     
 	return 0;
