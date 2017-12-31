@@ -96,6 +96,17 @@ void write_to_port() {
 
 }
 
+void generate_keystroke(char c) {
+	INPUT ip;
+	ip.type = INPUT_KEYBOARD;
+	ip.ki.time = 0;
+	ip.ki.dwFlags = KEYEVENTF_UNICODE;  // Specify the key as a unicode character
+	ip.ki.wScan = c;					// Which keypress to simulate
+	ip.ki.wVk = 0;
+	ip.ki.dwExtraInfo = 0;
+	SendInput(1, &ip, sizeof(INPUT));
+}
+
 void read_from_port() {
 
 	char TempChar; 
@@ -116,11 +127,31 @@ void read_from_port() {
 	}
 	while (NoBytesRead > 0);
 
-	char *received_info = (char*)malloc((i - 3) * sizeof(char));
-	strncat(received_info, SerialBuffer, i - 3);
 	
-	if (NoBytesRead > 0) {
-		if(strcmp(SerialBuffer, ))
+	
+	if (i > 0) {
+		char *received_info = (char *)malloc((i - 1) * sizeof(char));
+		received_info[i - 2] = '\0';
+		strncpy(received_info, SerialBuffer, i - 2);
+		//strncmp(LEFT, SerialBuffer, i - 2);
+		if (strcmp(received_info, LEFT) == 0) {
+			generate_keystroke('a');
+		}
+		if (strcmp(received_info, UP) == 0) {
+			generate_keystroke('w');
+		}
+		if (strcmp(received_info, DOWN) == 0) {
+			generate_keystroke('s');
+		}
+		if (strcmp(received_info, RIGHT) == 0) {
+			generate_keystroke('d');
+		}
+		if (strcmp(received_info, SELECT) == 0) {
+			generate_keystroke('j');
+		}
+		if (strcmp(received_info, BACK) == 0) {
+			generate_keystroke('k');
+		}
 	}
 	printf("Read data: %s",SerialBuffer);
 	memset(SerialBuffer, 0, sizeof(SerialBuffer));
@@ -132,16 +163,7 @@ void wait_comm_event() {
 	WaitCommEvent(hcomm, &dwEventMask, NULL);
 }
 
-void generate_keystroke(char c) {
-	INPUT ip;
-	ip.type = INPUT_KEYBOARD;
-	ip.ki.time = 0;
-	ip.ki.dwFlags = KEYEVENTF_UNICODE;  // Specify the key as a unicode character
-	ip.ki.wScan = c;					// Which keypress to simulate
-	ip.ki.wVk = 0;
-	ip.ki.dwExtraInfo = 0;
-	SendInput(1, &ip, sizeof(INPUT));
-}
+
 int main(int argc, char **argv)
 {
 	if (argc != 2) {
